@@ -80,13 +80,22 @@ class MorphTo extends BelongsTo
      *
      * @param  \Illuminate\Database\Eloquent\Builder<TRelatedModel>  $query
      * @param  TDeclaringModel  $parent
-     * @param  string  $foreignKey
+     * @param  string|array  $foreignKey
      * @param  string|null  $ownerKey
-     * @param  string  $type
-     * @param  string  $relation
+     * @param  string|null  $type
+     * @param  string|null  $relation
      */
-    public function __construct(Builder $query, Model $parent, $foreignKey, $ownerKey, $type, $relation)
+    public function __construct(Builder $query, Model $parent, $foreignKey, $ownerKey = null, $type = null, $relation = null)
     {
+        if (is_array($foreignKey)) {
+            $options = $foreignKey;
+
+            $foreignKey = $options['foreignKey'] ?? null;
+            $ownerKey = $options['ownerKey'] ?? $ownerKey;
+            $type = $options['type'] ?? $type;
+            $relation = $options['relation'] ?? $relation;
+        }
+
         $this->morphType = $type;
 
         parent::__construct($query, $parent, $foreignKey, $ownerKey, $relation);

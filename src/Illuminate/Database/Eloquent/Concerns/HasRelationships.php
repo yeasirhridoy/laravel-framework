@@ -444,7 +444,12 @@ trait HasRelationships
     protected function morphEagerTo($name, $type, $id, $ownerKey)
     {
         return $this->newMorphTo(
-            $this->newQuery()->setEagerLoads([]), $this, $id, $ownerKey, $type, $name
+            $this->newQuery()->setEagerLoads([]), $this, [
+                'foreignKey' => $id,
+                'ownerKey' => $ownerKey,
+                'type' => $type,
+                'relation' => $name,
+            ]
         );
     }
 
@@ -465,7 +470,12 @@ trait HasRelationships
         );
 
         return $this->newMorphTo(
-            $instance->newQuery(), $this, $id, $ownerKey ?? $instance->getKeyName(), $type, $name
+            $instance->newQuery(), $this, [
+                'foreignKey' => $id,
+                'ownerKey' => $ownerKey ?? $instance->getKeyName(),
+                'type' => $type,
+                'relation' => $name,
+            ]
         );
     }
 
@@ -477,13 +487,13 @@ trait HasRelationships
      *
      * @param  \Illuminate\Database\Eloquent\Builder<TRelatedModel>  $query
      * @param  TDeclaringModel  $parent
-     * @param  string  $foreignKey
+     * @param  string|array  $foreignKey
      * @param  string|null  $ownerKey
-     * @param  string  $type
-     * @param  string  $relation
+     * @param  string|null  $type
+     * @param  string|null  $relation
      * @return \Illuminate\Database\Eloquent\Relations\MorphTo<TRelatedModel, TDeclaringModel>
      */
-    protected function newMorphTo(Builder $query, Model $parent, $foreignKey, $ownerKey, $type, $relation)
+    protected function newMorphTo(Builder $query, Model $parent, $foreignKey, $ownerKey = null, $type = null, $relation = null)
     {
         return new MorphTo($query, $parent, $foreignKey, $ownerKey, $type, $relation);
     }

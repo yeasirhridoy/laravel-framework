@@ -195,6 +195,31 @@ class DatabaseEloquentMorphToTest extends TestCase
         $relation->dissociate();
     }
 
+    public function testOptionsArrayMayBePassedToConstructor()
+    {
+        $builder = m::mock(Builder::class);
+        $builder->shouldReceive('where')->with('relation.id', '=', 'foreign.value');
+        $related = m::mock(Model::class);
+        $related->shouldReceive('getKeyName')->andReturn('id');
+        $related->shouldReceive('getTable')->andReturn('relation');
+        $related->shouldReceive('qualifyColumn')->andReturnUsing(fn (string $column) => "relation.{$column}");
+        $builder->shouldReceive('getModel')->andReturn($related);
+        $parent = new EloquentMorphToModelStub;
+        $parent->foreign_key = 'foreign.value';
+
+        $relation = new MorphTo($builder, $parent, [
+            'foreignKey' => 'foreign_key',
+            'ownerKey' => 'id',
+            'type' => 'morph_type',
+            'relation' => 'relation',
+        ]);
+
+        $this->assertSame('morph_type', $relation->getMorphType());
+        $this->assertSame('foreign_key', $relation->getForeignKeyName());
+        $this->assertSame('id', $relation->getOwnerKeyName());
+        $this->assertSame('relation', $relation->getRelationName());
+    }
+
     public function testIsNotNull()
     {
         $relation = $this->getRelation();
