@@ -38,7 +38,10 @@ class CookieValuePrefix
     public static function validate($cookieName, $cookieValue, array $keys)
     {
         foreach ($keys as $key) {
-            $hasValidPrefix = str_starts_with($cookieValue, static::create($cookieName, $key));
+            $hasValidPrefix = hash_equals(
+                static::create($cookieName, $key),
+                (string) substr($cookieValue, 0, 41)
+            );
 
             if ($hasValidPrefix) {
                 return static::remove($cookieValue);
