@@ -1,0 +1,4 @@
+## 2024-05-15 - Command Injection via `Process::fromShellCommandline`
+**Vulnerability:** The application was using `Process::fromShellCommandline` with string concatenation and `escapeshellcmd` to launch URLs in a browser. This was vulnerable to argument and command injection, particularly when user input like URLs contain unescaped shell metacharacters.
+**Learning:** `escapeshellcmd` only escapes certain characters but not space, meaning arguments can still be passed to an underlying shell command. Combining it with `Process::fromShellCommandline` enables injection vulnerabilities depending on the command executed.
+**Prevention:** Always use the array-based constructor of `Symfony\Component\Process\Process` (e.g. `new Process([$binary, $argument])`) when passing arguments, to ensure proper, safe escaping of arguments directly to the OS bypassing the shell.

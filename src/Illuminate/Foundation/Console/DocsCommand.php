@@ -376,7 +376,8 @@ class DocsCommand extends Command
     protected function openViaBuiltInStrategy($url)
     {
         if ($this->systemOsFamily === 'Windows') {
-            $process = tap(Process::fromShellCommandline(escapeshellcmd("start {$url}")))->run();
+            // Security: Use array based process execution instead of escapeshellcmd to prevent command injection
+            $process = tap(new Process(['cmd', '/c', 'start', '', $url]))->run();
 
             if (! $process->isSuccessful()) {
                 throw new ProcessFailedException($process);
@@ -396,7 +397,8 @@ class DocsCommand extends Command
             return;
         }
 
-        $process = tap(Process::fromShellCommandline(escapeshellcmd("{$binary} {$url}")))->run();
+        // Security: Use array based process execution instead of escapeshellcmd to prevent command injection
+        $process = tap(new Process([$binary, $url]))->run();
 
         if (! $process->isSuccessful()) {
             throw new ProcessFailedException($process);
