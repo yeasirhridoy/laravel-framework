@@ -1,0 +1,4 @@
+## 2024-05-24 - [Command Injection via Process::fromShellCommandline]
+**Vulnerability:** Command/Argument injection in `Illuminate\Foundation\Console\DocsCommand` through the use of `Process::fromShellCommandline(escapeshellcmd(...))` when opening documentation URLs in the system's default browser.
+**Learning:** `Process::fromShellCommandline` combined with `escapeshellcmd` does not adequately protect against all forms of argument injection, especially when user-controlled data is part of the command string.
+**Prevention:** Always use the Symfony `Process` constructor with an array of arguments (e.g., `new Process(['cmd', '/c', 'start', '', $url])` or `new Process([$binary, $url])`). This ensures proper escaping of arguments at the operating system level, neutralizing command and argument injection vectors.
