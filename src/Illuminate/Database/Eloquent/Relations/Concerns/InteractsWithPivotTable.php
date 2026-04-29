@@ -572,15 +572,85 @@ trait InteractsWithPivotTable
      */
     protected function detachUsingCustomClass($ids)
     {
-        $results = 0;
+        $records = $this->getCurrentlyAttachedPivotsForIds($ids)
+            ->filter(fn ($record) => $this->fireModelEventOn($record, 'deleting') !== false);
 
-        $records = $this->getCurrentlyAttachedPivotsForIds($ids);
-
-        foreach ($records as $record) {
-            $results += $record->delete();
+        if ($records->isEmpty()) {
+            return 0;
         }
 
+        $records->each->touchOwners();
+
+        $firstRecord = $records->first();
+
+        $ids = $records->map(function ($record) {
+            return $record->getKey() ?: $this->getCompositeKeyForRecord($record);
+        })->all();
+
+        $query = $this->newPivotQuery();
+
+        if (is_array($ids[0])) {
+            $query->where(function ($query) use ($ids) {
+                foreach ($ids as $key) {
+                    $query->orWhere($key);
+                }
+            });
+        } else {
+            $query->whereIn($firstRecord->getKeyName(), $ids);
+        }
+
+        if (method_exists($firstRecord, 'isForceDeleting') && ! $firstRecord->isForceDeleting()) {
+            $column = $firstRecord->getDeletedAtColumn();
+
+            $results = $query->update([
+                $column => $time = $firstRecord->fromDateTime($firstRecord->freshTimestamp()),
+            ]);
+
+            $records->each(fn ($record) => $record->setAttribute($column, $time));
+        } else {
+            $results = $query->delete();
+        }
+
+        $records->each(function ($record) {
+            $record->exists = false;
+
+            $this->fireModelEventOn($record, 'deleted', false);
+        });
+
         return $results;
+    }
+
+    /**
+     * Get the composite execution key for the given record.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $record
+     * @return array
+     */
+    protected function getCompositeKeyForRecord($record)
+    {
+        $key = [
+            $record->getForeignKey() => $record->getOriginal($record->getForeignKey(), $record->getAttribute($record->getForeignKey())),
+            $record->getRelatedKey() => $record->getOriginal($record->getRelatedKey(), $record->getAttribute($record->getRelatedKey())),
+        ];
+
+        if ($record instanceof \Illuminate\Database\Eloquent\Relations\MorphPivot) {
+            $key[$record->getMorphType()] = $record->getMorphClass();
+        }
+
+        return $key;
+    }
+
+    /**
+     * Fire the given model event on the given model.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $event
+     * @param  bool  $halt
+     * @return mixed
+     */
+    protected function fireModelEventOn($model, $event, $halt = true)
+    {
+        return (fn () => $this->fireModelEvent($event, $halt))->bindTo($model, $model)();
     }
 
     /**
